@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JEE Practice Arena</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --card: #1a1a26;
+    --border: #2a2a3a;
+    --chem: #00e5a0;
+    --phys: #4d9fff;
+    --math: #ff6b6b;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --white: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Space Mono', monospace; min-height: 100vh; overflow-x: hidden; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
+  .wrapper { position: relative; z-index: 1; }
+
+  header { padding: 22px 40px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: rgba(10,10,15,0.85); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 100; }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem; }
+  .logo span { color: var(--chem); }
+  .header-sub { font-size: 0.6rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+  .tabs { display: flex; gap: 4px; background: var(--surface); padding: 4px; border-radius: 10px; border: 1px solid var(--border); }
+  .tab-btn { padding: 8px 20px; border: none; background: transparent; color: var(--muted); font-family: 'Space Mono', monospace; font-size: 0.72rem; cursor: pointer; border-radius: 7px; transition: all 0.2s; }
+  .tab-btn.active { background: var(--card); color: var(--white); }
+
+  /* Progress strip */
+  .progress-strip { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .prog-block { flex: 1; padding: 16px 28px; border-right: 1px solid var(--border); position: relative; overflow: hidden; }
+  .prog-block:last-child { border-right: none; }
+  .prog-fill { position: absolute; left: 0; top: 0; bottom: 0; opacity: 0.07; transition: width 0.5s ease; }
+  .chem-fill { background: var(--chem); }
+  .phys-fill { background: var(--phys); }
+  .math-fill { background: var(--math); }
+  .prog-label { font-size: 0.58rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; position: relative; }
+  .prog-nums { display: flex; align-items: baseline; gap: 5px; position: relative; }
+  .prog-done { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.6rem; }
+  .prog-sep { color: var(--muted); font-size: 0.85rem; }
+  .prog-total { color: var(--muted); font-size: 0.85rem; }
+  .prog-word { font-size: 0.58rem; color: var(--muted); margin-left: 4px; }
+  .chem-num { color: var(--chem); }
+  .phys-num { color: var(--phys); }
+  .math-num { color: var(--math); }
+  .prog-bar-thin { height: 3px; background: var(--border); border-radius: 2px; margin-top: 10px; overflow: hidden; position: relative; }
+  .prog-bar-inner { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+  .chem-bar { background: var(--chem); }
+  .phys-bar { background: var(--phys); }
+  .math-bar { background: var(--math); }
+
+  main { padding: 32px 40px; }
+
+  /* Practice */
+  .subject-section { margin-bottom: 44px; animation: fadeUp 0.4s ease both; }
+  .subject-section:nth-child(2) { animation-delay: 0.08s; }
+  .subject-section:nth-child(3) { animation-delay: 0.16s; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .section-title { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .chem .dot { background: var(--chem); box-shadow: 0 0 8px var(--chem); }
+  .phys .dot { background: var(--phys); box-shadow: 0 0 8px var(--phys); }
+  .math .dot { background: var(--math); box-shadow: 0 0 8px var(--math); }
+  .reroll-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: 'Space Mono', monospace; font-size: 0.68rem; padding: 6px 14px; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+  .reroll-btn:hover { border-color: var(--text); color: var(--text); }
+
+  .video-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  @media (max-width: 1100px) { .video-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 650px) { .video-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .video-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; cursor: pointer; transition: all 0.22s; position: relative; }
+  .video-card:hover { transform: translateY(-3px); }
+  .chem .video-card:hover { border-color: var(--chem); }
+  .phys .video-card:hover { border-color: var(--phys); }
+  .math .video-card:hover { border-color: var(--math); }
+  .video-card.used { opacity: 0.38; }
+  .used-badge { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.75); color: var(--muted); font-size: 0.52rem; padding: 2px 7px; border-radius: 4px; letter-spacing: 1px; text-transform: uppercase; z-index: 2; }
+
+  .thumb-wrap { position: relative; aspect-ratio: 16/9; background: #0d0d18; overflow: hidden; }
+  .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .play-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); opacity: 0; transition: opacity 0.2s; }
+  .video-card:hover .play-overlay { opacity: 1; }
+  .play-icon { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; }
+  .play-icon svg { margin-left: 3px; }
+
+  .video-info { padding: 9px 11px; }
+  .video-num { font-size: 0.58rem; color: var(--muted); letter-spacing: 1px; margin-bottom: 3px; }
+  .video-id { font-size: 0.68rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .empty-state { grid-column: 1/-1; text-align: center; padding: 36px; color: var(--muted); font-size: 0.75rem; border: 1px dashed var(--border); border-radius: 10px; }
+  .empty-state span { display: block; font-size: 1.6rem; margin-bottom: 8px; }
+
+  .start-bar { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 28px 0 0; }
+  .reroll-all-btn { background: transparent; color: var(--text); border: 1px solid var(--border); font-family: 'Space Mono', monospace; font-size: 0.72rem; padding: 13px 26px; border-radius: 10px; cursor: pointer; transition: all 0.2s; }
+  .reroll-all-btn:hover { border-color: var(--text); }
+
+  /* Modal */
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+  .modal-bg.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 90vw; max-width: 880px; overflow: hidden; animation: scaleIn 0.22s ease; }
+  @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal-top { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  .modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.88rem; }
+  .modal-actions { display: flex; gap: 10px; align-items: center; }
+  .mark-done-btn { background: rgba(0,229,160,0.1); border: 1px solid rgba(0,229,160,0.3); color: var(--chem); font-family: 'Space Mono', monospace; font-size: 0.65rem; padding: 7px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+  .mark-done-btn:hover { background: rgba(0,229,160,0.2); }
+  .mark-done-btn.done { opacity: 0.4; cursor: default; }
+  .modal-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.2rem; line-height: 1; transition: color 0.2s; }
+  .modal-close:hover { color: var(--text); }
+  .player-wrap { position: relative; aspect-ratio: 16/9; background: #000; }
+  .player-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
+  .embed-fallback { display: none; position: absolute; inset: 0; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: #0a0a0f; color: var(--muted); font-size: 0.72rem; text-align: center; padding: 24px; }
+  .embed-fallback.visible { display: flex; }
+  .embed-fallback svg { opacity: 0.4; }
+  .embed-fallback p { line-height: 1.7; max-width: 320px; }
+  .open-yt-btn { display: inline-flex; align-items: center; gap: 8px; background: #ff0000; color: #fff; border: none; font-family: 'Space Mono', monospace; font-size: 0.72rem; padding: 11px 22px; border-radius: 8px; cursor: pointer; text-decoration: none; transition: opacity 0.2s; }
+  .open-yt-btn:hover { opacity: 0.85; }
+
+  /* Confirm */
+  .confirm-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 300; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+  .confirm-bg.open { display: flex; }
+  .confirm-box { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 34px 30px; max-width: 380px; width: 90%; text-align: center; animation: scaleIn 0.2s ease; }
+  .confirm-icon { font-size: 2.4rem; margin-bottom: 14px; }
+  .confirm-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; margin-bottom: 10px; }
+  .confirm-sub { font-size: 0.68rem; color: var(--muted); line-height: 1.8; margin-bottom: 26px; }
+  .confirm-btns { display: flex; gap: 10px; justify-content: center; }
+  .confirm-yes { background: var(--chem); color: #000; border: none; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.8rem; padding: 11px 26px; border-radius: 8px; cursor: pointer; transition: opacity 0.2s; }
+  .confirm-yes:hover { opacity: 0.85; }
+  .confirm-no { background: transparent; color: var(--text); border: 1px solid var(--border); font-family: 'Space Mono', monospace; font-size: 0.7rem; padding: 11px 22px; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+  .confirm-no:hover { border-color: var(--text); }
+
+  /* Library */
+  .lib-section { margin-bottom: 38px; }
+  .lib-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .lib-title { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  .lib-count { font-size: 0.62rem; color: var(--muted); font-family: 'Space Mono', monospace; font-weight: 400; }
+  .lib-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  .upload-zone { position: relative; border: 1.5px dashed var(--border); border-radius: 8px; padding: 9px 16px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; font-size: 0.68rem; color: var(--muted); background: var(--card); }
+  .upload-zone:hover { border-color: var(--muted); color: var(--text); }
+  .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+
+  .clear-used-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: 'Space Mono', monospace; font-size: 0.65rem; padding: 9px 14px; border-radius: 7px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+  .clear-used-btn:hover { border-color: var(--math); color: var(--math); }
+
+  .link-list { display: flex; flex-direction: column; gap: 5px; max-height: 320px; overflow-y: auto; }
+  .link-list::-webkit-scrollbar { width: 4px; }
+  .link-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .link-row { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 7px; padding: 8px 12px; font-size: 0.68rem; transition: border-color 0.15s; }
+  .link-row.used-row { opacity: 0.42; }
+  .link-row:hover { border-color: var(--muted); }
+  .link-thumb { width: 44px; height: 26px; border-radius: 4px; object-fit: cover; flex-shrink: 0; background: var(--surface); }
+  .link-id { color: var(--text); font-weight: 700; flex-shrink: 0; min-width: 95px; }
+  .link-url { flex: 1; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .used-tag { font-size: 0.52rem; color: var(--muted); background: var(--surface); padding: 2px 7px; border-radius: 4px; flex-shrink: 0; letter-spacing: 1px; border: 1px solid var(--border); }
+  .del-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.9rem; padding: 2px 5px; border-radius: 4px; transition: all 0.2s; flex-shrink: 0; }
+  .del-btn:hover { color: var(--math); background: rgba(255,107,107,0.1); }
+  .no-links { font-size: 0.72rem; color: var(--muted); padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 8px; line-height: 1.8; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: var(--card); border: 1px solid var(--border); color: var(--text); font-family: 'Space Mono', monospace; font-size: 0.68rem; padding: 12px 22px; border-radius: 8px; z-index: 400; white-space: nowrap; box-shadow: 0 4px 24px rgba(0,0,0,0.5); animation: fadeUp 0.25s ease; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <div>
+      <div class="logo">JEE <span>Arena</span></div>
+      <div class="header-sub">Practice · Random · Tracked</div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('practice',this)">Practice</button>
+      <button class="tab-btn" onclick="switchTab('library',this)">Manage Videos</button>
+    </div>
+  </header>
+
+  <!-- Progress Strip -->
+  <div class="progress-strip">
+    <div class="prog-block">
+      <div class="prog-fill chem-fill" id="fill-chem" style="width:0%"></div>
+      <div class="prog-label">Chemistry</div>
+      <div class="prog-nums">
+        <span class="prog-done chem-num" id="done-chem">0</span>
+        <span class="prog-sep">/</span>
+        <span class="prog-total" id="total-chem">0</span>
+        <span class="prog-word">videos done</span>
+      </div>
+      <div class="prog-bar-thin"><div class="prog-bar-inner chem-bar" id="bar-chem" style="width:0%"></div></div>
+    </div>
+    <div class="prog-block">
+      <div class="prog-fill phys-fill" id="fill-phys" style="width:0%"></div>
+      <div class="prog-label">Physics</div>
+      <div class="prog-nums">
+        <span class="prog-done phys-num" id="done-phys">0</span>
+        <span class="prog-sep">/</span>
+        <span class="prog-total" id="total-phys">0</span>
+        <span class="prog-word">videos done</span>
+      </div>
+      <div class="prog-bar-thin"><div class="prog-bar-inner phys-bar" id="bar-phys" style="width:0%"></div></div>
+    </div>
+    <div class="prog-block">
+      <div class="prog-fill math-fill" id="fill-math" style="width:0%"></div>
+      <div class="prog-label">Mathematics</div>
+      <div class="prog-nums">
+        <span class="prog-done math-num" id="done-math">0</span>
+        <span class="prog-sep">/</span>
+        <span class="prog-total" id="total-math">0</span>
+        <span class="prog-word">videos done</span>
+      </div>
+      <div class="prog-bar-thin"><div class="prog-bar-inner math-bar" id="bar-math" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <main>
+    <!-- PRACTICE -->
+    <div id="view-practice">
+      <div class="subject-section chem">
+        <div class="section-header">
+          <div class="section-title"><span class="dot"></span><span style="font-family:'Syne',sans-serif">Chemistry</span></div>
+          <button class="reroll-btn" onclick="rollSubject('chem')">↻ Re-roll</button>
+        </div>
+        <div class="video-grid" id="grid-chem"></div>
+      </div>
+      <div class="subject-section phys">
+        <div class="section-header">
+          <div class="section-title"><span class="dot"></span><span style="font-family:'Syne',sans-serif">Physics</span></div>
+          <button class="reroll-btn" onclick="rollSubject('phys')">↻ Re-roll</button>
+        </div>
+        <div class="video-grid" id="grid-phys"></div>
+      </div>
+      <div class="subject-section math">
+        <div class="section-header">
+          <div class="section-title"><span class="dot"></span><span style="font-family:'Syne',sans-serif">Mathematics</span></div>
+          <button class="reroll-btn" onclick="rollSubject('math')">↻ Re-roll</button>
+        </div>
+        <div class="video-grid" id="grid-math"></div>
+      </div>
+      <div class="start-bar">
+        <button class="reroll-all-btn" onclick="rollAll()">↻ Roll All New</button>
+      </div>
+    </div>
+
+    <!-- LIBRARY -->
+    <div id="view-library" style="display:none">
+      <div class="lib-section">
+        <div class="lib-header">
+          <div class="lib-title">
+            <span class="dot" style="background:var(--chem);box-shadow:0 0 8px var(--chem)"></span>
+            <span style="font-family:'Syne',sans-serif">Chemistry</span>
+            <span class="lib-count" id="lc-chem"></span>
+          </div>
+          <div class="lib-controls">
+            <button class="clear-used-btn" onclick="clearUsed('chem')">↺ Reset used</button>
+            <label class="upload-zone">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload .txt
+              <input type="file" accept=".txt" onchange="handleTxt(event,'chem')"/>
+            </label>
+          </div>
+        </div>
+        <div class="link-list" id="list-chem"></div>
+      </div>
+
+      <div class="lib-section">
+        <div class="lib-header">
+          <div class="lib-title">
+            <span class="dot" style="background:var(--phys);box-shadow:0 0 8px var(--phys)"></span>
+            <span style="font-family:'Syne',sans-serif">Physics</span>
+            <span class="lib-count" id="lc-phys"></span>
+          </div>
+          <div class="lib-controls">
+            <button class="clear-used-btn" onclick="clearUsed('phys')">↺ Reset used</button>
+            <label class="upload-zone">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload .txt
+              <input type="file" accept=".txt" onchange="handleTxt(event,'phys')"/>
+            </label>
+          </div>
+        </div>
+        <div class="link-list" id="list-phys"></div>
+      </div>
+
+      <div class="lib-section">
+        <div class="lib-header">
+          <div class="lib-title">
+            <span class="dot" style="background:var(--math);box-shadow:0 0 8px var(--math)"></span>
+            <span style="font-family:'Syne',sans-serif">Mathematics</span>
+            <span class="lib-count" id="lc-math"></span>
+          </div>
+          <div class="lib-controls">
+            <button class="clear-used-btn" onclick="clearUsed('math')">↺ Reset used</button>
+            <label class="upload-zone">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload .txt
+              <input type="file" accept=".txt" onchange="handleTxt(event,'math')"/>
+            </label>
+          </div>
+        </div>
+        <div class="link-list" id="list-math"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- VIDEO MODAL -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-top">
+      <div class="modal-title" id="modal-title">Playing</div>
+      <div class="modal-actions">
+        <button class="mark-done-btn" id="mark-done-btn" onclick="markCurrentDone()">✓ Mark as Done</button>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+    </div>
+    <div class="player-wrap">
+      <iframe id="player-iframe" allowfullscreen allow="autoplay; encrypted-media" onload="handleIframeLoad(this)"></iframe>
+      <div class="embed-fallback" id="embed-fallback">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <p>This video can't be played here because the owner has disabled embedding.<br>Watch it directly on YouTube instead.</p>
+        <a id="open-yt-link" href="#" target="_blank" rel="noopener" class="open-yt-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19C0 8.04 0 12 0 12s0 3.96.5 5.81a3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14C24 15.96 24 12 24 12s0-3.96-.5-5.81zM9.75 15.5v-7l6.25 3.5-6.25 3.5z"/></svg>
+          Watch on YouTube
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM RESET DIALOG -->
+<div class="confirm-bg" id="confirm-dialog">
+  <div class="confirm-box">
+    <div class="confirm-icon">🎉</div>
+    <div class="confirm-title" id="confirm-title">All done!</div>
+    <div class="confirm-sub" id="confirm-sub">You've watched every video. Reset and cycle again?</div>
+    <div class="confirm-btns">
+      <button class="confirm-yes" id="confirm-yes-btn">Yes, reset</button>
+      <button class="confirm-no" onclick="closeConfirm()">Not yet</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORE_KEY = 'jee_arena_v2';
+const USED = { chem: 'usedChem', phys: 'usedPhys', math: 'usedMath' };
+const LABELS = { chem: 'Chemistry', phys: 'Physics', math: 'Mathematics' };
+
+let S = { chem:[], phys:[], math:[], usedChem:[], usedPhys:[], usedMath:[] };
+let sel = { chem:[], phys:[], math:[] };
+let curId = null, curSub = null;
+let pendingSub = null;
+
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch(e){} }
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(STORE_KEY)||'{}');
+    ['chem','phys','math'].forEach(s => { S[s]=d[s]||[]; S[USED[s]]=d[USED[s]]||[]; });
+  } catch(e){}
+}
+
+function extractId(raw) {
+  raw = (raw||'').trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) return raw;
+  let m;
+  m = raw.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/); if(m) return m[1];
+  m = raw.match(/[?&]v=([a-zA-Z0-9_-]{11})/); if(m) return m[1];
+  m = raw.match(/shorts\/([a-zA-Z0-9_-]{11})/); if(m) return m[1];
+  m = raw.match(/embed\/([a-zA-Z0-9_-]{11})/); if(m) return m[1];
+  return null;
+}
+const thumb = id => `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
+
+// ── TXT UPLOAD ──
+function handleTxt(e, sub) {
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const lines = ev.target.result.split(/\r?\n/);
+    let added=0, dupes=0, bad=0;
+    lines.forEach(line => {
+      const id = extractId(line);
+      if(!id){ if(line.trim()) bad++; return; }
+      if(S[sub].includes(id)){ dupes++; return; }
+      S[sub].push(id); added++;
+    });
+    save(); renderList(sub); updateProgress();
+    let msg = `Added ${added} to ${LABELS[sub]}.`;
+    if(dupes) msg += ` ${dupes} duplicates skipped.`;
+    if(bad) msg += ` ${bad} unrecognised lines ignored.`;
+    toast(msg);
+    e.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+// ── ROLL ──
+function getUnused(sub) { return S[sub].filter(id => !S[USED[sub]].includes(id)); }
+function pick(arr, n) { return [...arr].sort(()=>Math.random()-0.5).slice(0, Math.min(n, arr.length)); }
+
+function rollSubject(sub) {
+  const unused = getUnused(sub);
+  if(unused.length === 0) {
+    if(S[sub].length === 0){ sel[sub]=[]; renderGrid(sub); return; }
+    showConfirm(sub); return;
+  }
+  sel[sub] = pick(unused, 5);
+  renderGrid(sub);
+}
+function rollAll() { ['chem','phys','math'].forEach(rollSubject); }
+
+// ── MARK DONE ──
+function markCurrentDone() {
+  if(!curId||!curSub) return;
+  const uk = USED[curSub];
+  if(!S[uk].includes(curId)) { S[uk].push(curId); save(); }
+  updateProgress(); renderGrid(curSub); renderList(curSub);
+  const btn = document.getElementById('mark-done-btn');
+  btn.textContent = '✓ Done!'; btn.classList.add('done');
+  const allUsed = getUnused(curSub).length===0 && S[curSub].length>0;
+  closeModal();
+  if(allUsed) setTimeout(()=>showConfirm(curSub), 350);
+}
+
+// ── PROGRESS ──
+function updateProgress() {
+  ['chem','phys','math'].forEach(sub => {
+    const total = S[sub].length;
+    const done = S[USED[sub]].length;
+    const pct = total>0 ? (done/total)*100 : 0;
+    document.getElementById(`done-${sub}`).textContent = done;
+    document.getElementById(`total-${sub}`).textContent = total;
+    document.getElementById(`bar-${sub}`).style.width = pct+'%';
+    document.getElementById(`fill-${sub}`).style.width = pct+'%';
+    const lc = document.getElementById(`lc-${sub}`);
+    if(lc) lc.textContent = `— ${done}/${total} done`;
+  });
+}
+
+// ── RENDER GRID ──
+function renderGrid(sub) {
+  const grid = document.getElementById(`grid-${sub}`);
+  const used = S[USED[sub]];
+  if(sel[sub].length===0) {
+    const has = S[sub].length>0;
+    grid.innerHTML = `<div class="empty-state"><span>${has?'✅':'📭'}</span>${has?'All videos watched! Re-roll or reset to continue.':'No videos yet — upload a .txt in <strong>Manage Videos</strong>'}</div>`;
+    return;
+  }
+  grid.innerHTML = sel[sub].map((id,i) => {
+    const isUsed = used.includes(id);
+    return `<div class="video-card${isUsed?' used':''}" onclick="openVideo('${id}','${sub}','${LABELS[sub]} Q${i+1}')">
+      ${isUsed?'<div class="used-badge">DONE</div>':''}
+      <div class="thumb-wrap">
+        <img src="${thumb(id)}" alt="Q${i+1}" loading="lazy" onerror="this.style.display='none'"/>
+        <div class="play-overlay"><div class="play-icon"><svg width="11" height="13" viewBox="0 0 12 14" fill="none"><path d="M1 1L11 7L1 13V1Z" fill="#000"/></svg></div></div>
+      </div>
+      <div class="video-info">
+        <div class="video-num">Q${i+1}${isUsed?' · watched':''}</div>
+        <div class="video-id">${id}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── RENDER LIST ──
+function renderList(sub) {
+  const list = document.getElementById(`list-${sub}`); if(!list) return;
+  const used = S[USED[sub]];
+  if(S[sub].length===0){ list.innerHTML=`<div class="no-links">No videos yet.<br>Upload a .txt file with one YouTube link per line.</div>`; return; }
+  list.innerHTML = S[sub].map((id,i) => {
+    const isUsed = used.includes(id);
+    return `<div class="link-row${isUsed?' used-row':''}">
+      <img class="link-thumb" src="${thumb(id)}" alt="" onerror="this.style.background='#1a1a26'"/>
+      <span class="link-id">${id}</span>
+      <span class="link-url">youtube.com/watch?v=${id}</span>
+      ${isUsed?'<span class="used-tag">DONE</span>':''}
+      <button class="del-btn" onclick="removeVideo('${sub}',${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+function renderLists() { ['chem','phys','math'].forEach(renderList); }
+
+function removeVideo(sub, idx) {
+  const id = S[sub][idx];
+  S[sub].splice(idx,1);
+  S[USED[sub]] = S[USED[sub]].filter(u=>u!==id);
+  sel[sub] = sel[sub].filter(s=>s!==id);
+  save(); renderList(sub); updateProgress(); renderGrid(sub);
+}
+
+function clearUsed(sub) {
+  S[USED[sub]]=[]; save(); updateProgress(); renderList(sub); renderGrid(sub);
+  toast(`${LABELS[sub]} history cleared — all videos available again.`);
+}
+
+// ── MODAL ──
+function openVideo(id, sub, title) {
+  curId=id; curSub=sub;
+  const isUsed = S[USED[sub]].includes(id);
+  document.getElementById('modal-title').textContent=title;
+  const btn=document.getElementById('mark-done-btn');
+  btn.textContent = isUsed?'✓ Already Done':'✓ Mark as Done';
+  btn.classList.toggle('done', isUsed);
+  // Reset fallback state
+  document.getElementById('embed-fallback').classList.remove('visible');
+  document.getElementById('player-iframe').style.display = 'block';
+  document.getElementById('open-yt-link').href = `https://www.youtube.com/watch?v=${id}`;
+  document.getElementById('player-iframe').src=`https://www.youtube.com/embed/${id}?autoplay=1&rel=0&enablejsapi=1`;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  document.getElementById('player-iframe').src='';
+  document.getElementById('embed-fallback').classList.remove('visible');
+  document.getElementById('player-iframe').style.display = 'block';
+  curId=null; curSub=null;
+}
+
+// Detect embed errors (error 153 = embedding disabled)
+function handleIframeLoad(iframe) {
+  try {
+    // If the iframe loaded an error page, YouTube sets the title to something detectable
+    // We use a postMessage listener instead for reliability
+  } catch(e) {}
+}
+// Listen for YouTube's postMessage error events
+window.addEventListener('message', function(e) {
+  if (!e.origin.includes('youtube.com')) return;
+  try {
+    const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+    // YouTube sends error info via postMessage; error code 150/151/153 = embed not allowed
+    if (data && data.event === 'onError' && [100,101,150,151,153].includes(data.info)) {
+      document.getElementById('embed-fallback').classList.add('visible');
+      document.getElementById('player-iframe').style.display = 'none';
+    }
+  } catch(e) {}
+});
+document.getElementById('modal').addEventListener('click', e=>{ if(e.target===document.getElementById('modal')) closeModal(); });
+
+// ── CONFIRM ──
+function showConfirm(sub) {
+  pendingSub=sub;
+  document.getElementById('confirm-title').textContent=`All ${LABELS[sub]} videos watched!`;
+  document.getElementById('confirm-sub').textContent=`You've completed all ${S[sub].length} ${LABELS[sub]} videos. Reset history and cycle through them again?`;
+  document.getElementById('confirm-yes-btn').onclick=()=>{ clearUsed(pendingSub); rollSubject(pendingSub); closeConfirm(); };
+  document.getElementById('confirm-dialog').classList.add('open');
+}
+function closeConfirm() { document.getElementById('confirm-dialog').classList.remove('open'); pendingSub=null; }
+
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeModal(); closeConfirm(); } });
+
+// ── TABS ──
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(tab==='practice'){ document.getElementById('view-practice').style.display='block'; document.getElementById('view-library').style.display='none'; }
+  else { document.getElementById('view-practice').style.display='none'; document.getElementById('view-library').style.display='block'; renderLists(); updateProgress(); }
+}
+
+// ── TOAST ──
+function toast(msg) {
+  const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(), 3200);
+}
+
+// ── INIT ──
+load(); updateProgress(); rollAll();
+</script>
+</body>
+</html>
